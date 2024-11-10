@@ -7,7 +7,7 @@
 #include "ESP32Console/Commands/VFSCommands.h"
 #include "ESP32Console/Commands/GPIOCommands.h"
 #include "driver/uart.h"
-#include "esp_vfs_dev.h"
+#include "driver/uart_vfs.h"
 #include "linenoise/linenoise.h"
 #include "ESP32Console/Helpers/PWDHelpers.h"
 #include "ESP32Console/Helpers/InputParser.h"
@@ -86,9 +86,11 @@ namespace ESP32Console
         registerCoreCommands();
     }
 
-    void Console::begin(int baud, int rxPin, int txPin, uint8_t channel)
+    void Console::begin(int baud, int rxPin, int txPin, uint8_t port)
     {
         log_d("Initialize console");
+
+        uart_port_t channel = static_cast<uart_port_t>(port);
 
         if (channel >= SOC_UART_NUM)
         {
@@ -111,9 +113,9 @@ namespace ESP32Console
         setvbuf(stdin, NULL, _IONBF, 0);
 
         /* Minicom, screen, idf_monitor send CR when ENTER key is pressed */
-        esp_vfs_dev_uart_port_set_rx_line_endings(channel, ESP_LINE_ENDINGS_CR);
+        uart_vfs_dev_port_set_rx_line_endings(channel, ESP_LINE_ENDINGS_CR);
         /* Move the caret to the beginning of the next line on '\n' */
-        esp_vfs_dev_uart_port_set_tx_line_endings(channel, ESP_LINE_ENDINGS_CRLF);
+        uart_vfs_dev_port_set_tx_line_endings(channel, ESP_LINE_ENDINGS_CRLF);
 
         /* Configure UART. Note that REF_TICK is used so that the baud rate remains
          * correct while APB frequency is changing in light sleep mode.
@@ -145,7 +147,7 @@ namespace ESP32Console
         ESP_ERROR_CHECK(uart_driver_install(channel, 256, 0, 0, NULL, 0));
 
         /* Tell VFS to use UART driver */
-        esp_vfs_dev_uart_use_driver(channel);
+        uart_vfs_dev_use_driver(channel);
 
         esp_console_config_t console_config = {
             .max_cmdline_length = max_cmdline_len_,

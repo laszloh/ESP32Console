@@ -9,6 +9,7 @@
 #include "lwip/sockets.h"
 
 #include <unistd.h>
+#include <inttypes.h>
 
 #include "WiFi.h"
 
@@ -64,7 +65,7 @@ static void on_ping_success(esp_ping_handle_t hdl, void *args)
     esp_ping_get_profile(hdl, ESP_PING_PROF_IPADDR, &target_addr, sizeof(target_addr));
     esp_ping_get_profile(hdl, ESP_PING_PROF_SIZE, &recv_len, sizeof(recv_len));
     esp_ping_get_profile(hdl, ESP_PING_PROF_TIMEGAP, &elapsed_time, sizeof(elapsed_time));
-    printf("%u bytes from %s icmp_seq=%d ttl=%d time=%u ms\n",
+    printf("%" PRIu32 " bytes from %s icmp_seq=%d ttl=%d time=%u ms\n",
            recv_len, inet_ntoa(target_addr.u_addr.ip4), seqno, ttl, elapsed_time);
 }
 
@@ -180,7 +181,7 @@ static int ping(int argc, char **argv)
     esp_ping_get_profile(ping, ESP_PING_PROF_REQUEST, &transmitted, sizeof(transmitted));
     esp_ping_get_profile(ping, ESP_PING_PROF_REPLY, &received, sizeof(received));
     esp_ping_get_profile(ping, ESP_PING_PROF_DURATION, &total_time_ms, sizeof(total_time_ms));
-    printf("%u packets transmitted, %u received, time %u ms\n", transmitted, received, total_time_ms);
+    printf("%" PRIu32 " packets transmitted, %" PRIu32 " received, time %" PRIu32 " ms\n", transmitted, received, total_time_ms);
 
 
 
@@ -203,13 +204,13 @@ static void ipconfig_wlan()
     printf("\n");
     printf("SSID: %s\n", WiFi.SSID().c_str());
     printf("BSSID: %s\n", WiFi.BSSIDstr().c_str());
-    printf("Channel: %d\n", WiFi.channel());
+    printf("Channel: %" PRId32 "\n", WiFi.channel());
 
     printf("\n");
     printf("IP: %s\n", WiFi.localIP().toString().c_str());
     printf("Subnet Mask: %s (/%d)\n", WiFi.subnetMask().toString().c_str(), WiFi.subnetCIDR());
     printf("Gateway: %s\n", WiFi.gatewayIP().toString().c_str());
-    printf("IPv6: %s\n", WiFi.localIPv6().toString().c_str());
+    printf("IPv6: %s\n", WiFi.linkLocalIPv6().toString().c_str());
     
     printf("\n");
     printf("Hostname: %s\n", WiFi.getHostname());
