@@ -6,6 +6,8 @@
 #include <esp_system.h>
 #include <core_version.h>
 #include <getopt.h>
+#include "esp_chip_info.h"
+#include <cinttypes>
 
 // For XSTR macros
 #include <xtensa/xtruntime.h>
@@ -92,7 +94,7 @@ static int sysInfo(int argc, char **argv)
     printf("\tModel: %s\n", ESP.getChipModel());
     printf("\tRevison number: %d\n", ESP.getChipRevision());
     printf("\tCores: %d\n", ESP.getChipCores());
-    printf("\tClock: %d MHz\n", ESP.getCpuFreqMHz());
+    printf("\tClock: %" PRIu32 " MHz\n", ESP.getCpuFreqMHz());
     printf("\tFeatures:%s%s%s%s%s\r\n",
            info.features & CHIP_FEATURE_WIFI_BGN ? " 802.11bgn " : "",
            info.features & CHIP_FEATURE_BLE ? " BLE " : "",
@@ -102,10 +104,10 @@ static int sysInfo(int argc, char **argv)
 
     printf("EFuse MAC: %s\n", mac2String(ESP.getEfuseMac()).c_str());
 
-    printf("Flash size: %d MB (mode: %s, speed: %d MHz)\n", ESP.getFlashChipSize() / (1024 * 1024), getFlashModeStr(), ESP.getFlashChipSpeed() / (1024 * 1024));
-    printf("PSRAM size: %d MB\n", ESP.getPsramSize() / (1024 * 1024));
+    printf("Flash size: %" PRIu32 " MB (mode: %s, speed: %" PRIu32 " MHz)\n", ESP.getFlashChipSize() / (1024 * 1024), getFlashModeStr(), ESP.getFlashChipSpeed() / (1024 * 1024));
+    printf("PSRAM size: %" PRIu32 " MB\n", ESP.getPsramSize() / (1024 * 1024));
 
-    printf("Sketch size: %d KB\n", ESP.getSketchSize() / (1024));
+    printf("Sketch size: %" PRIu32 " KB\n", ESP.getSketchSize() / (1024));
     printf("Sketch MD5: %s\n", ESP.getSketchMD5().c_str());
 
 #ifndef CONFIG_APP_REPRODUCIBLE_BUILD
@@ -134,8 +136,8 @@ static int meminfo(int argc, char **argv)
     uint32_t used = total - free;
     uint32_t min = ESP.getMinFreeHeap() / 1024;
 
-    printf("Heap: %u KB free, %u KB used, (%u KB total)\n", free, used, total);
-    printf("Minimum free heap size during uptime was: %u KB\n", min);
+    printf("Heap: %" PRIu32 " KB free, %" PRIu32 " KB used, (%" PRIu32 " KB total)\n", free, used, total);
+    printf("Minimum free heap size during uptime was: %" PRIu32 " KB\n", min);
     return EXIT_SUCCESS;
 }
 
@@ -173,7 +175,7 @@ static int date(int argc, char **argv)
     {
         if (!target)
         {
-            fprintf(stderr, "Set option requires an datetime as argument in format '%Y-%m-%d %H:%M:%S' (e.g. 'date -s \"2022-07-13 22:47:00\"'\n");
+            fprintf(stderr, "Set option requires an datetime as argument in format '%%Y-%%m-%%d %%H:%%M:%%S' (e.g. 'date -s \"2022-07-13 22:47:00\"'\n");
             return 1;
         }
 
@@ -181,7 +183,7 @@ static int date(int argc, char **argv)
 
         if (!strptime(target, "%Y-%m-%d %H:%M:%S", &t))
         {
-            fprintf(stderr, "Set option requires an datetime as argument in format '%Y-%m-%d %H:%M:%S' (e.g. 'date -s \"2022-07-13 22:47:00\"'\n");
+            fprintf(stderr, "Set option requires an datetime as argument in format '%%Y-%%m-%%d %%H:%%M:%%S' (e.g. 'date -s \"2022-07-13 22:47:00\"'\n");
             return 1;
         }
 
