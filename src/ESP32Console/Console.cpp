@@ -95,6 +95,8 @@ namespace ESP32Console
     {
         log_d("Initialize console");
 
+        uart_port_t channel = static_cast<uart_port_t>(port);
+
         if (channel >= SOC_UART_NUM)
         {
             log_e("Serial number is invalid, please use numers from 0 to %u", SOC_UART_NUM - 1);
