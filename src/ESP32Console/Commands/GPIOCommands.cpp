@@ -1,5 +1,8 @@
 #include "./GPIOCommands.h"
 #include "Arduino.h"
+#include <stdexcept>
+#include <string>
+#include <cinttypes>
 
 static int _pinmode(int argc, char **argv)
 {
@@ -18,14 +21,14 @@ static int _pinmode(int argc, char **argv)
     {
         pin = std::stoul(pin_str);
     }
-    catch (std::invalid_argument ex)
+    catch (std::invalid_argument &ex)
     {
         fprintf(stderr, "Invalid argument for pin: %s\n", ex.what());
         return 1;
     }
 
     if (pin > 255 || !digitalPinIsValid(pin)) {
-        fprintf(stderr, "%d is not a GPIO pin\n", pin);
+        fprintf(stderr, "%" PRIu32 " is not a GPIO pin\n", pin);
         return 1;
     }
 
@@ -79,14 +82,14 @@ static int _digitalWrite(int argc, char** argv)
     {
         pin = std::stoul(pin_str);
     }
-    catch (std::invalid_argument ex)
+    catch (std::invalid_argument &ex)
     {
         fprintf(stderr, "Invalid argument for pin: %s\n", ex.what());
         return 1;
     }
 
     if (pin > 255 || !digitalPinCanOutput(pin)) {
-        fprintf(stderr, "%d is not a GPIO pin\n", pin);
+        fprintf(stderr, "%" PRIu32 " is not a GPIO pin\n", pin);
         return 1;
     }
 
@@ -126,14 +129,14 @@ static int _digitalRead(int argc, char** argv)
     {
         pin = std::stoul(pin_str);
     }
-    catch (std::invalid_argument ex)
+    catch (std::invalid_argument &ex)
     {
         fprintf(stderr, "Invalid argument for pin: %s\n", ex.what());
         return 1;
     }
 
     if (pin > 255 || !digitalPinCanOutput(pin)) {
-        fprintf(stderr, "%d is not a GPIO pin\n", pin);
+        fprintf(stderr, "%" PRIu32 " is not a GPIO pin\n", pin);
         return 1;
     }
 
@@ -167,14 +170,14 @@ static int _analogRead(int argc, char** argv)
     {
         pin = std::stoul(pin_str);
     }
-    catch (std::invalid_argument ex)
+    catch (std::invalid_argument &ex)
     {
         fprintf(stderr, "Invalid argument for pin: %s\n", ex.what());
         return 1;
     }
 
     if (pin > 255 || digitalPinToAnalogChannel(pin) == -1) {
-        fprintf(stderr, "%d is not a ADC pin\n", pin);
+        fprintf(stderr, "%" PRIu32 " is not a ADC pin\n", pin);
         return 1;
     }
 
