@@ -212,6 +212,8 @@ static void ipconfig_wlan()
     printf("Gateway: %s\n", WiFi.gatewayIP().toString().c_str());
 #if !defined(ESP_ARDUINO_VERSION_MAJOR) || ESP_ARDUINO_VERSION_MAJOR < 3
     printf("IPv6: %s\n", WiFi.localIPv6().toString().c_str());
+#else
+    printf("IPv6: %s\n", WiFi.linkLocalIPv6().toString().c_str());
 #endif
     
     printf("\n");
