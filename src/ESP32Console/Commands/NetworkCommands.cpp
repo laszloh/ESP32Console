@@ -1,9 +1,7 @@
 #include "./NetworkCommands.h"
 #include <Arduino.h>
 
-#include <esp_ping.h>
-#include <ping/ping.h>
-#include <ping/ping_sock.h>
+#include "ping/ping_sock.h"
 #include "lwip/inet.h"
 #include "lwip/netdb.h"
 #include "lwip/sockets.h"

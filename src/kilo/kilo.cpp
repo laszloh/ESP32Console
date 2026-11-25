@@ -48,7 +48,14 @@
 
 #include <kilo/kilo.h>
 
-#include <termios.h>
+#include "esp_idf_version.h"
+#include "soc/soc_caps.h"
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+#include "driver/uart_vfs.h"
+#else
+#include "esp_vfs_dev.h"
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -212,14 +219,33 @@ namespace ESP32Console::Kilo
 
     /* ======================= Low level terminal handling ====================== */
 
-    static struct termios orig_termios; /* In order to restore at exit.*/
-
-    void disableRawMode(int fd)
+    /* On ESP32 stdin is a VFS over the UART driver, not a real tty, so the classic
+     * termios raw mode is both unavailable (with CONFIG_VFS_SUPPORT_TERMIOS=n) and
+     * unnecessary: the UART driver is already installed by Console::begin(), input
+     * is not echoed, and linenoise already reads character-by-character over the
+     * same device. The only thing kilo needs beyond that is for received bytes to
+     * reach it verbatim, i.e. without the CR -> LF translation the console enables
+     * for linenoise, so that ENTER arrives as CR (13) and escape sequences stay
+     * intact. We toggle just that via the UART VFS instead of termios, which also
+     * avoids pulling in <sys/termios.h> and its B0/VSTART/VSTOP macros. */
+    static void setConsoleRxLineEndings(esp_line_endings_t mode)
     {
-        /* Don't even check the return value as it's too late. */
+        for (int port = 0; port < SOC_UART_NUM; port++)
+        {
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+            uart_vfs_dev_port_set_rx_line_endings(port, mode);
+#else
+            esp_vfs_dev_uart_port_set_rx_line_endings(port, mode);
+#endif
+        }
+    }
+
+    void disableRawMode(int fd __attribute__((unused)))
+    {
         if (E.rawmode)
         {
-            tcsetattr(fd, TCSAFLUSH, &orig_termios);
+            /* Restore the CR -> LF translation the console/linenoise expects. */
+            setConsoleRxLineEndings(ESP_LINE_ENDINGS_CR);
             E.rawmode = 0;
         }
     }
@@ -230,43 +256,17 @@ namespace ESP32Console::Kilo
         disableRawMode(STDIN_FILENO);
     }
 
-    /* Raw mode: 1960 magic shit. */
-    int enableRawMode(int fd)
+    /* Raw mode: pass received bytes through untranslated. */
+    int enableRawMode(int fd __attribute__((unused)))
     {
-        struct termios raw;
-
         if (E.rawmode)
             return 0; /* Already enabled. */
-        if (!isatty(STDIN_FILENO))
-            goto fatal;
         atexit(editorAtExit);
-        if (tcgetattr(fd, &orig_termios) == -1)
-            goto fatal;
-
-        raw = orig_termios; /* modify the original mode */
-        /* input modes: no break, no CR to NL, no parity check, no strip char,
-         * no start/stop output control. */
-        raw.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
-        /* output modes - disable post processing */
-        raw.c_oflag &= ~(OPOST);
-        /* control modes - set 8 bit chars */
-        raw.c_cflag |= (CS8);
-        /* local modes - choing off, canonical off, no extended functions,
-         * no signal chars (^Z,^C) */
-        raw.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
-        /* control chars - set return condition: min number of bytes and timer. */
-        raw.c_cc[VMIN] = 0;  /* Return each byte, or zero for timeout. */
-        raw.c_cc[VTIME] = 1; /* 100 ms timeout (unit is tens of second). */
-
-        /* put terminal in raw mode after flushing */
-        if (tcsetattr(fd, TCSAFLUSH, &raw) < 0)
-            goto fatal;
+        /* Disable CR -> LF translation so ENTER is seen as CR (13) and escape
+         * sequences are delivered byte for byte. */
+        setConsoleRxLineEndings(ESP_LINE_ENDINGS_LF);
         E.rawmode = 1;
         return 0;
-
-    fatal:
-        errno = ENOTTY;
-        return -1;
     }
 
     /* Read a key from the terminal put in raw mode, trying to handle
@@ -964,7 +964,7 @@ namespace ESP32Console::Kilo
         char *line = NULL;
         size_t linecap = 0;
         ssize_t linelen;
-        while ((linelen = __getline(&line, &linecap, fp)) != -1)
+        while ((linelen = getline(&line, &linecap, fp)) != -1)
         {
             if (linelen && (line[linelen - 1] == '\n' || line[linelen - 1] == '\r'))
                 line[--linelen] = '\0';
